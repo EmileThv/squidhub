@@ -38,7 +38,7 @@ export async function getLeaderboard(): Promise<PlayerData[]> {
     // 5. Sort by credits (High -> Low) and keep Top 4
     return leaderboard
       .sort((a, b) => b.credits - a.credits)
-      .slice(0, 3);
+      .slice(0, 5);
 
   } catch (error) {
     console.error("Leaderboard error:", error);

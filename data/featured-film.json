@@ -1,6 +1,10 @@
 {
-  "title": "Satantango",
+  "title": "Sátántangó",
   "realisateur": "Béla Tarr",
   "poster": "https://www.lemagducine.fr/wp-content/uploads/2020/09/satantango-bela-tarr-sortie-dvd-blu-ray-carlotta.jpg",
-  "rating": 3.75
+  "watchedBy": [
+    { "id": "490813131711315979", "grade": 3.5 },
+    { "id": "353537780535787531", "grade": 3.5 },
+    { "id" : "319133895197196298", "grade": 4.5 }
+  ]
 }

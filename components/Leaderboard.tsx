@@ -9,7 +9,7 @@ export default async function Leaderboard() {
     <div className="w-full h-full flex flex-col px-6 py-4">
       {/* Header */}
       <div className="flex justify-between items-end mb-4 border-b border-white/10 pb-2">
-        <h3 className="text-xl font-black uppercase tracking-tighter text-white">
+        <h3 className="text-xl font-black uppercase tracking-tighter text-main-yellow">
           Classement
         </h3>
         <span className="text-xs uppercase tracking-widest text-main-green font-bold opacity-80">
