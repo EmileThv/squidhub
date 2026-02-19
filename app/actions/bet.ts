@@ -11,69 +11,53 @@ export async function createBet(receiverId: string, amount: number, title: strin
   const senderId = session.user.id;
 
   try {
-    // 1. On récupère les crédits (juste pour le log)
-    const currentCredits = await kv.get<number>(`user:credits:${senderId}`) || 5000;
+    const currentCredits = await kv.get<number>(`user:credits:${senderId}`) ?? 5000;
+    if (currentCredits < amount) throw new Error("INSUFFICIENT_CREDITS");
+    if (receiverId === senderId) throw new Error("CANNOT_BET_SELF");
 
-    
-    if (currentCredits < amount) {
-       throw new Error("INSUFFICIENT_CREDITS");
-    }
-    
-    // Prevent betting yourself
-    if (receiverId === senderId) {
-      throw new Error("CANNOT_BET_SELF");
-    }
+    // Check neither player already has an active/pending bet
+    const checkForActiveBet = async (userId: string): Promise<boolean> => {
+      const betIds = await kv.smembers(`user:bets:${userId}`);
+      if (!betIds || betIds.length === 0) return false;
+      const bets = await kv.mget<any[]>(...betIds.map((id) => `bet:${id}`));
+      return bets.some((b) => b?.status === "ACTIVE" || b?.status === "PENDING");
+    };
 
-    // 2. Check that neither sender nor receiver is currently involved in any active/pending bets
-    const parseList = (arr: any[]) => arr.map((b) => (typeof b === "string" ? JSON.parse(b) : b));
+    if (await checkForActiveBet(senderId)) throw new Error("SENDER_HAS_ACTIVE_BET");
+    if (await checkForActiveBet(receiverId)) throw new Error("RECEIVER_HAS_ACTIVE_BET");
 
-    const senderRaw = await kv.lrange<any>(`user:bets:${senderId}`, 0, -1);
-    const senderBets = parseList(senderRaw || []);
-    const senderHasActive = senderBets.some((b: any) => b?.status === "ACTIVE" || b?.status === "PENDING");
-    if (senderHasActive) {
-      throw new Error("SENDER_HAS_ACTIVE_BET");
-    }
-
-    const receiverRaw = await kv.lrange<any>(`user:bets:${receiverId}`, 0, -1);
-    const receiverBets = parseList(receiverRaw || []);
-    const receiverHasActive = receiverBets.some((b: any) => b?.status === "ACTIVE" || b?.status === "PENDING");
-    if (receiverHasActive) {
-      throw new Error("RECEIVER_HAS_ACTIVE_BET");
-    }
-    
-
-    // 3. On enregistre le pari dans KV pour l'historique
-    // app/actions/bet.ts
+    const betId = Math.random().toString(36).substr(2, 9);
     const betData = {
-      id: `${Math.random().toString(36).substr(2, 9)}`,
+      id: betId,
       amount,
       title: title || "DEMO_BET",
       senderId,
-      senderName: session.user.name, // AJOUTE CECI ICI
+      senderName: session.user.name,
       receiverId,
       status: "PENDING",
       createdAt: Date.now(),
+      discordBetSent: false,
     };
 
-    // Inside your createBet function in bet.tsx
-    await kv.lpush(`user:bets:${senderId}`, JSON.stringify(betData));
+    // Single source of truth: one key per bet, users hold sets of betIds
+    await kv.set(`bet:${betId}`, JSON.stringify(betData));
+    await kv.sadd(`user:bets:${senderId}`, betId);
+    await kv.sadd(`user:bets:${receiverId}`, betId);
 
-    // ADD THIS: Trigger the Discord notification
-    // We pass the receiverId (Discord ID), the sender's name, and the bet details
-    // Inside your createBet function in bet.ts
     await sendDiscordBetRequest({
       receiverId,
-      senderId: session.user.id,
+      senderId,
       senderName: session.user.name || "Un utilisateur",
       amount,
       title: title || "DEMO_BET",
-      betId: betData.id
+      betId,
     });
 
     revalidatePath("/bets");
     return { success: true };
 
-  } catch (e) {
+  } catch (e: any) {
     console.error("DEBUG_BET_ERROR:", e);
+    return { success: false, error: e?.message ?? "UNKNOWN_ERROR" };
   }
 }

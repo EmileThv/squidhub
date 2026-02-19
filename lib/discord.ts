@@ -1,4 +1,4 @@
-import { discordFetch, assertBotToken } from "./discord-http";
+import { discordFetch } from "./discord-http";
 import { kv } from "@vercel/kv";
 
 type DiscordResult =
@@ -25,18 +25,19 @@ export async function sendDiscordBetRequest({
   betId: string;
 }): Promise<DiscordResult> {
   const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN?.trim();
-  await assertBotToken(BOT_TOKEN);
+  if (!BOT_TOKEN) throw new Error("Missing DISCORD_BOT_TOKEN");
 
-  const sentKey = `discord:sent:bet:${betId}`;
-  if (await kv.get(sentKey)) {
+  // Dedup check: read flag directly from the bet object
+  const raw = await kv.get<any>(`bet:${betId}`);
+  const bet = typeof raw === "string" ? JSON.parse(raw) : raw;
+  if (bet?.discordBetSent) {
     console.log(`[Discord] Bet DM already sent for ${betId}`);
     return { ok: true };
   }
 
-  // 1) Open DM
   const open = await discordFetch("/users/@me/channels", {
     method: "POST",
-    botToken: BOT_TOKEN!,
+    botToken: BOT_TOKEN,
     body: JSON.stringify({ recipient_id: receiverId }),
   });
 
@@ -45,10 +46,9 @@ export async function sendDiscordBetRequest({
     return { ok: false, reason: "DISCORD_ERROR" };
   }
 
-  // 2) Send message
   const send = await discordFetch(`/channels/${open.data.id}/messages`, {
     method: "POST",
-    botToken: BOT_TOKEN!,
+    botToken: BOT_TOKEN,
     body: JSON.stringify({
       content: `### NOUVEAU PARI REÇU !
 **${senderName}** vous défie pour **${amount} CR** sur :
@@ -67,18 +67,19 @@ export async function sendDiscordBetRequest({
 
   if (!send.res.ok) {
     const code = Number(send.data?.code || 0);
-
     if (send.res.status === 403 && code === 50007) {
       console.warn(`[Discord] DMs closed for user ${receiverId}`);
       return { ok: false, reason: "DMS_CLOSED" };
     }
-
     console.error("[Discord] Failed to send bet DM", send.res.status, send.data);
     return { ok: false, reason: "DISCORD_ERROR" };
   }
 
-
-  await kv.set(sentKey, true);
+  // Mark as sent on the bet object itself
+  if (bet) {
+    bet.discordBetSent = true;
+    await kv.set(`bet:${betId}`, JSON.stringify(bet));
+  }
 
   return { ok: true };
 }
@@ -101,17 +102,19 @@ export async function sendDiscordResolutionRequest({
   claimedWinnerId: string;
 }): Promise<DiscordResult> {
   const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN?.trim();
-  await assertBotToken(BOT_TOKEN);
+  if (!BOT_TOKEN) throw new Error("Missing DISCORD_BOT_TOKEN");
 
-  const sentKey = `discord:sent:resolution:${betId}`;
-  if (await kv.get(sentKey)) {
+  // Dedup check on the bet object
+  const raw = await kv.get<any>(`bet:${betId}`);
+  const bet = typeof raw === "string" ? JSON.parse(raw) : raw;
+  if (bet?.discordResolutionSent) {
     console.log(`[Discord] Resolution DM already sent for ${betId}`);
     return { ok: true };
   }
 
   const open = await discordFetch("/users/@me/channels", {
     method: "POST",
-    botToken: BOT_TOKEN!,
+    botToken: BOT_TOKEN,
     body: JSON.stringify({ recipient_id: opponentId }),
   });
 
@@ -122,7 +125,7 @@ export async function sendDiscordResolutionRequest({
 
   const send = await discordFetch(`/channels/${open.data.id}/messages`, {
     method: "POST",
-    botToken: BOT_TOKEN!,
+    botToken: BOT_TOKEN,
     body: JSON.stringify({
       content: `**Demande de clôture de pari !**
 
@@ -146,7 +149,11 @@ Es-tu d'accord avec ce résultat ?`,
     return { ok: false, reason: "DISCORD_ERROR" };
   }
 
-  await kv.set(sentKey, true);
+  // Mark as sent on the bet object
+  if (bet) {
+    bet.discordResolutionSent = true;
+    await kv.set(`bet:${betId}`, JSON.stringify(bet));
+  }
 
   return { ok: true };
 }
