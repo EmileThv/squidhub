@@ -7,7 +7,7 @@ export async function GET() {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const credits = await kv.get<number>(`user:credits:${session.user.id}`) ?? 5000;
+  const credits = await kv.get<number>(`user:credits:${session.user.id}`) ?? 0;
 
   return Response.json({ credits });
 }

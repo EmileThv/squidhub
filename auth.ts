@@ -58,7 +58,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Set the profile AND the 5000 starting credits
           await Promise.all([
             kv.set(profileKey, newUserProfile),
-            kv.set(creditsKey, 5000),
+            kv.set(creditsKey, 10000), // Starting credits
             kv.sadd("all_players", userId),
           ]);
 
