@@ -1,4 +1,3 @@
-// components/Leaderboard.tsx
 import { getLeaderboard } from "@/lib/leaderboard";
 import Image from "next/image";
 

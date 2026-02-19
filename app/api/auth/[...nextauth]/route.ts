@@ -1,2 +1,2 @@
-import { handlers } from "@/auth"; // Vérifie que le chemin vers ton fichier auth.ts est correct
+import { handlers } from "@/auth";
 export const { GET, POST } = handlers;

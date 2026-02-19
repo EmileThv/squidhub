@@ -1,4 +1,3 @@
-// app/page.tsx
 import Leaderboard from "@/components/Leaderboard";
 import FilmCard from "@/components/FilmCard";
 import Image from "next/image";

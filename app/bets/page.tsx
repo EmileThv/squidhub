@@ -2,7 +2,7 @@
 
 import { useSession, signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import BettingInterface from "@/components/BettingInterface"; // We'll create this next
+import BettingInterface from "@/components/betting/BettingInterface"; 
 export default function BettingPage() {
     const { data: session, status } = useSession();
 

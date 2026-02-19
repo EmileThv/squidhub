@@ -13,7 +13,7 @@ export default function Navbar() {
     return (
         <nav className="flex items-center justify-between px-4 md:px-6 py-4 bg-discord-black text-white border-b border-white/10">
 
-            {/* GAUCHE : Logo PNG - On vire le texte SquidHub */}
+            {/* GAUCHE : Logo PNG */}
             <a href="/" className="flex items-center min-w-fit md:w-100 cursor-pointer group">
                 <div className="relative h-10 w-32 md:h-14 md:w-48 drop-shadow-[0_0_15px_rgba(34,176,78,0.4)] transition-transform group-hover:scale-105">
                     <Image

@@ -5,8 +5,8 @@
     import { signIn } from "next-auth/react";
     import { createBet } from "@/app/actions/bet";
     import { useCredits } from "@/app/providers/CreditsProvider";
-    import Jack from "./betting/Jack";
-    import Spinner from "./betting/Spinner";
+    import Jack from "./Jack";
+    import Spinner from "./Spinner";
 
     // Types
     interface Point {

@@ -1,4 +1,3 @@
-// lib/leaderboard.ts
 import { kv } from "@vercel/kv";
 
 export interface PlayerData {

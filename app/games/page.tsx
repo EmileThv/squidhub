@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import gamesData from "./games-data.json";
+import gamesData from "@/data/games-data.json";
 import { useEffect, useState } from "react";
 
 export default function GamesPage() {

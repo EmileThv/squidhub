@@ -1,4 +1,3 @@
-// app/api/discord/interactions/route.ts
 import { NextResponse } from "next/server";
 import { verifyKey } from "discord-interactions";
 import { kv } from "@vercel/kv";

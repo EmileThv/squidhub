@@ -1,4 +1,3 @@
-// components/FilmCard.tsx
 import Image from "next/image";
 import filmData from "@/data/featured-film.json";
 import { kv } from "@vercel/kv";
@@ -15,7 +14,7 @@ export default async function FilmCard() {
 
     // 1. Fetch all profiles in one go (Optimization)
     const profileKeys = watchedBy.map((v) => `user:profile:${v.id}`);
-    const profilesRaw = watchedBy.length > 0 ? await kv.mget<any[]>(...profileKeys) : [];
+    const profilesRaw = watchedBy.length > 0 ? await kv.mget<any[]>(profileKeys) : [];
 
     const viewerProfiles: ViewerProfile[] = watchedBy.map((v, index) => {
         const profile = profilesRaw[index] || {};

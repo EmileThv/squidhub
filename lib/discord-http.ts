@@ -1,4 +1,3 @@
-// lib/discord-http.ts
 const DISCORD_API = "https://discord.com/api/v10";
 
 type DiscordError = { message?: string; code?: number };

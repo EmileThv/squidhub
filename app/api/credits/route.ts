@@ -1,4 +1,3 @@
-// app/api/credits/route.ts
 import { auth } from "@/auth";
 import { kv } from "@vercel/kv";
 

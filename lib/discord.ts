@@ -1,6 +1,3 @@
-// lib/discord.ts
-// SERVER-ONLY
-
 import { discordFetch, assertBotToken } from "./discord-http";
 import { kv } from "@vercel/kv";
 
@@ -80,7 +77,7 @@ export async function sendDiscordBetRequest({
     return { ok: false, reason: "DISCORD_ERROR" };
   }
 
- 
+
   await kv.set(sentKey, true);
 
   return { ok: true };

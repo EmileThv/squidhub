@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { initiateResolution } from "@/app/actions/resolve-bet";
 
-// Petite fonction pour dire à SWR comment récupérer les données
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function ActiveBetsOverlay() {
