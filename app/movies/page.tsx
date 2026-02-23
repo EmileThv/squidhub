@@ -57,6 +57,8 @@ export default function SuggestPage() {
                 const res = await fetch("/api/users");
                 const data = await res.json();
                 setPlayers(data);
+                const me = data.find((p: Player) => p.id === session?.user?.id);
+                if (me) setSelectedPlayers([me.id]);
                 setStatus("authenticated");
             } catch (err) {
                 console.error("Failed to fetch players:", err);
@@ -156,6 +158,10 @@ export default function SuggestPage() {
         }
     };
 
+    if (status === "loading") {
+        return <p className="text-white p-8">Loading...</p>;
+    }
+
     if (status === "unauthenticated") {
         return <p className="text-white p-8">You need to be logged in.</p>;
     }
@@ -207,7 +213,7 @@ export default function SuggestPage() {
                             onClick={() => togglePlayer(player.id)}
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${selectedPlayers.includes(player.id)
                                 ? "bg-main-green border-main-yellow"
-                                : "border-main-yellow/20 hover:border-main-yellow/50"
+                                : "border-main-yel low/20 hover:border-main-yellow/50"
                                 }`}
                         >
                             <img

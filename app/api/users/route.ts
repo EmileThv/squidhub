@@ -12,7 +12,6 @@ export async function GET() {
   // 2. On récupère les infos de chaque profil en parallèle
   const users = await Promise.all(
     allUserIds
-      .filter((id) => id !== myId) // On s'exclut de la liste
       .slice(0, 10)               // On limite à 10 pour ta grille
       .map(async (id) => {
         const profile = await kv.get(`user:profile:${id}`);
