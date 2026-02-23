@@ -9,8 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.11.1",
-    "@prisma/client": "5.22.0",
     "@vercel/kv": "^3.0.0",
     "discord-interactions": "^4.4.0",
     "dotenv": "^17.3.1",
@@ -18,8 +16,6 @@
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
-    "pg": "^8.18.0",
-    "prisma": "5.22.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "swr": "^2.4.0"
@@ -28,7 +24,6 @@
     "@tailwindcss/postcss": "^4",
     "@types/next-auth": "^3.13.0",
     "@types/node": "^20",
-    "@types/pg": "^8.16.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.24",

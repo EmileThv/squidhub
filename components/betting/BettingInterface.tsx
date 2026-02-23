@@ -255,7 +255,7 @@
                 }}
                 className="min-h-dvh h-screen bg-[#0a0a0a] text-white overflow-hidden relative font-mono p-4 md:p-8 select-none flex items-start justify-center"
             >
-                {/* BIG DYNAMIC BACKGROUND TEXT */}
+                {/*BACKGROUND TEXT */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-0">
                     <h1 className={`text-[30vw] font-(family-name:--font-squidwod) font-black tracking-tighter transition-colors duration-700 opacity-10 select-none ${isPathComplete() ? 'text-main-yellow drop-shadow-[0_0_15px_rgba(254,200,12,0.6)]' : 'text-main-green'}`}>
                         GAMBLING
@@ -264,7 +264,6 @@
 
 
 
-                {/* SPACED GRID */}
                 <div className="flex flex-col xl:grid xl:grid-cols-4 gap-4 xl:gap-8 w-full max-w-375 z-20 relative py-6 items-start">
 
                     {/* LEFT: POWER SOURCE */}
@@ -601,4 +600,3 @@
         );
     }
 
-    // Jack and Spinner have been extracted to small modules in `components/betting/`

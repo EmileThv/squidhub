@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+PROJECT_OVERVIEW.md
 
 # debug
 npm-debug.log*
