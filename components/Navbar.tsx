@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, Wallet, Gamepad2 } from 'lucide-react';
+import { Menu, Wallet, Gamepad2, Film } from 'lucide-react';
 import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 
@@ -37,10 +37,10 @@ export default function Navbar() {
                         <Wallet size={24} />
                         <span className="hidden md:inline">Pari</span>
                     </a>
-                    <button className="flex items-center justify-center gap-2 text-main-yellow hover:text-main-green transition font-bold text-lg md:w-30 cursor-pointer">
-                        <Menu size={24} />
-                        <span className="hidden md:inline">Profils</span>
-                    </button>
+                    <a href="/movies" className="flex items-center justify-center gap-2 text-main-yellow hover:text-main-green transition font-bold text-lg md:w-30 cursor-pointer" >
+                        <Film size={24} />
+                        <span className="hidden md:inline">Films</span>
+                    </a>
                 </div>
             </div>
 
