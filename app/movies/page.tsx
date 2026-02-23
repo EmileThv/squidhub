@@ -158,12 +158,8 @@ export default function SuggestPage() {
         }
     };
 
-    if (status === "loading") {
-        return <p className="text-white p-8">Loading...</p>;
-    }
-
-    if (status === "unauthenticated") {
-        return <p className="text-white p-8">You need to be logged in.</p>;
+    if (status === "loading" || status === "unauthenticated") {
+        return <div className="flex flex-wrap justify-center"><p className="text-white p-8">Chargement... (Connectez vous si ce n'est pas déjà le cas)</p></div>;
     }
 
     if (hasLetterboxd === false) {
@@ -205,7 +201,7 @@ export default function SuggestPage() {
 
             {/* Step 1 — Who's watching */}
             <section className="mb-8">
-                <h2 className="text-xl font-semibold mb-3">Who's watching?</h2>
+                <h2 className="text-xl font-semibold mb-3">Qui regarde ?</h2>
                 <div className="flex flex-wrap gap-2">
                     {players.map((player) => (
                         <button
