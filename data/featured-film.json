@@ -1,10 +1,10 @@
 {
-  "title": "Sátántangó",
-  "realisateur": "Béla Tarr",
-  "poster": "https://www.lemagducine.fr/wp-content/uploads/2020/09/satantango-bela-tarr-sortie-dvd-blu-ray-carlotta.jpg",
+  "title": "Paranormal Activity",
+  "realisateur": "Oren Peli",
+  "poster": "https://m.media-amazon.com/images/M/MV5BMjY1NjcxODQ4MV5BMl5BanBnXkFtZTcwMzUxNjM4Mg@@._V1_FMjpg_UX1000_.jpg",
   "watchedBy": [
-    { "id": "490813131711315979", "grade": 3.5 },
-    { "id": "353537780535787531", "grade": 3.5 },
-    { "id" : "319133895197196298", "grade": 4.5 }
+    { "id": "490813131711315979", "grade": 2.5 },
+    { "id": "353537780535787531", "grade": 2 },
+    { "id" : "319133895197196298", "grade": 3 }
   ]
 }
