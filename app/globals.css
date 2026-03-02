@@ -23,3 +23,12 @@ body {
   -ms-overflow-style: none;  /* IE/Edge */
   scrollbar-width: none;     /* Firefox */
 }
+
+@keyframes scan {
+  from { top: -10%; }
+  to { top: 110%; }
+}
+
+.animate-scan {
+  animation: scan 2s linear infinite;
+}

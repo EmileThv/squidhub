@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Providers from "@/components/Providers";
 import ActiveBetsOverlay from "@/components/ActiveBetsOverlay";
+import AnimalOfTheDay from "@/components/AnimalOfTheDay";
 
 // Configuration de la police locale
 const squidwod = localFont({
@@ -27,6 +28,7 @@ export default function RootLayout({
         <Providers>
           <Navbar />
           {children}
+          <AnimalOfTheDay />
           <ActiveBetsOverlay />
         </Providers>
       </body>
