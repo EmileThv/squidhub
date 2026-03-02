@@ -30,6 +30,10 @@
                 {
                     "name": "Pédantix",
                     "url": "https://pedantix.certitudes.org/"
+                },
+                {
+                    "name": "Linxicon",
+                    "url": "https://linxicon.com"
                 }
             ]
         },
@@ -88,6 +92,10 @@
                 {
                     "name": "OnePiecedle",
                     "url": "https://onepiecedle.net/"
+                },
+                {
+                    "name": "PokeGrid",
+                    "url": "https://www.pokegrid.net"
                 }
             ]
         }
