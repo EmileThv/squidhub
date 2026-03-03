@@ -15,7 +15,7 @@
     { "label": "Cuckoo Roller", "id": "525652", "env": "AERIEN" },
     { "label": "Aardvark", "id": "47059", "env": "TERRESTRE" },
     { "label": "Dugongs et Lamantins", "id": "46306", "env": "MARIN" },
-    { "label": "Colugos", "id": "42535", "env": "TERRESTRE" },
+    { "label": "Colugos", "id": "42535", "env": "AERIEN" },
     { "label": "Siphonophores", "id": "152823", "env": "MARIN" },
     { "label": "Vers polychetes", "id": "47490", "env": "MARIN" },
     { "label": "Gibbons", "id": "43585", "env": "TERRESTRE" },
@@ -23,5 +23,8 @@
     { "label": "Loup a criniere", "id": "42090", "env": "TERRESTRE" },
     { "label": "Insectes battons", "id": "47198", "env": "INSECTE" },
     { "label": "Papillons de nuit geants", "id": "47918", "env": "INSECTE" },
-    { "label": "Plante chelou namibie", "id": "53818", "env": "TERRESTRE" }
+    { "label": "Plante chelou namibie", "id": "53818", "env": "TERRESTRE" },
+    { "label": "Poissons lunes", "id": "1303584", "env": "MARIN" },
+    { "label": "Flatworms", "id": "52319", "env": "MARIN" },
+    { "label": "Meduses", "id": "47534", "env": "MARIN" }
 ]

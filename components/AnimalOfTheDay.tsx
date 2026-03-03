@@ -145,10 +145,10 @@ export default function FractalSonarDisplay() {
 
     const taxonMood = useMemo(() => {
         switch (data?.env) {
-            case "MARIN": return { label: "Spécimen marin", accent: "#22B04E", glow: "rgba(34,176,78,0.75)" };
-            case "AERIEN": return { label: "Spécimen aérien", accent: "#FEC80C", glow: "rgba(254,200,12,0.75)" };
-            case "INSECTE": return { label: "Spécimen insecte", accent: "#FEC80C", glow: "rgba(254,200,12,0.75)" };
-            default: return { label: "Spécimen terrestre", accent: "#22B04E", glow: "rgba(34,176,78,0.75)" };
+            case "MARIN": return { label: "Spécimen marin", accent: "#4AC8F5", glow: "rgba(74,200,245,0.75)" };
+            case "AERIEN": return { label: "Spécimen aérien", accent: "#C8F5C0", glow: "rgba(200,245,192,0.75)" };
+            case "INSECTE": return { label: "Spécimen insecte", accent: "#F5844A", glow: "rgba(245,132,74,0.75)" };
+            default: return { label: "Spécimen terrestre", accent: "#F56A6A", glow: "rgba(245,106,106,0.75)" };
         }
     }, [data?.env]);
 
