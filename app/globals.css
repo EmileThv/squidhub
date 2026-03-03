@@ -24,11 +24,10 @@ body {
   scrollbar-width: none;     /* Firefox */
 }
 
-@keyframes scan {
-  from { top: -10%; }
-  to { top: 110%; }
-}
-
-.animate-scan {
-  animation: scan 2s linear infinite;
+@keyframes flicker {
+    0%, 80%, 100% { opacity: 1; }
+    82% { opacity: 0.4; }
+    84% { opacity: 1; }
+    86% { opacity: 0.2; }
+    88% { opacity: 0.9; }
 }
