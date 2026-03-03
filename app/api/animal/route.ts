@@ -56,6 +56,7 @@ async function fetchDeepNicheAnimal() {
             photos,
             inatUrl: `https://www.inaturalist.org/taxa/${taxonId}`,
             placeGuess: obs.place_guess || "Global",
+            env : taxon.env
         };
     } catch (e) {
         return null;
