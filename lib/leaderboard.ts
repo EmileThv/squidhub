@@ -1,4 +1,5 @@
 import { kv } from "@vercel/kv";
+import { STARTING_CREDITS } from "@/lib/credits";
 
 export interface PlayerData {
   id: string;
@@ -28,7 +29,7 @@ export async function getLeaderboard(): Promise<PlayerData[]> {
       const profile = profilesRaw[index] || {};
       return {
         id,
-        credits: creditsRaw[index] ?? 5000, // Default to 5000 if not set
+        credits: creditsRaw[index] ?? STARTING_CREDITS,
         name: profile.name ?? `Joueur ${id.slice(-4)}`, // Fallback name
         image: profile.image ?? null, // Fallback handled in UI
       };

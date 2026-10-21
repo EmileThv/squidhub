@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyKey } from "discord-interactions";
 import { kv } from "@vercel/kv";
+import { STARTING_CREDITS } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,14 @@ async function getBet(betId: string): Promise<any | null> {
 async function saveBet(bet: any) {
   await kv.set(`bet:${bet.id}`, JSON.stringify(bet));
 }
+
+// Helper: short-lived lock so a double click (or a Discord retry) can't run the same step twice
+async function claimBetLock(betId: string, step: string): Promise<boolean> {
+  return (await kv.set(`lock:bet:${betId}:${step}`, 1, { nx: true, ex: 30 })) === "OK";
+}
+
+const ephemeral = (content: string) =>
+  NextResponse.json({ type: 4, data: { content, flags: 64 } });
 
 export async function POST(req: Request) {
   const signature = req.headers.get("x-signature-ed25519");
@@ -81,10 +90,29 @@ export async function POST(req: Request) {
           return NextResponse.json({ type: 4, data: { content: "Pari introuvable.", flags: 64 } });
         }
 
-        if (action === "resolve_accept" && winnerId) {
-          await kv.incrby(`user:credits:${winnerId}`, bet.amount * 2);
+        // Only the opponent of whoever claimed the result can validate or contest it
+        const validatorId = bet.resolutionInitiatorId
+          ? (bet.resolutionInitiatorId === bet.senderId ? bet.receiverId : bet.senderId)
+          : null;
+        const isParticipant = clickerId === bet.senderId || clickerId === bet.receiverId;
+        if (validatorId ? clickerId !== validatorId : !isParticipant) {
+          return ephemeral("Ce n'est pas à toi de valider ce pari.");
+        }
+
+        if (bet.status !== "PENDING_VALIDATION") {
+          return ephemeral("Ce pari a déjà été clôturé.");
+        }
+
+        if (!(await claimBetLock(betId, "resolve"))) {
+          return ephemeral("Ce pari est déjà en cours de traitement.");
+        }
+
+        const finalWinnerId = bet.claimedWinner ?? winnerId;
+
+        if (action === "resolve_accept" && finalWinnerId) {
+          await kv.incrby(`user:credits:${finalWinnerId}`, bet.amount * 2);
           bet.status = "COMPLETED";
-          bet.winnerId = winnerId;
+          bet.winnerId = finalWinnerId;
         } else {
           // Contest: refund both players
           await kv.incrby(`user:credits:${bet.senderId}`, bet.amount);
@@ -98,7 +126,7 @@ export async function POST(req: Request) {
           type: 7,
           data: {
             content: action === "resolve_accept"
-              ? `**Pari validé.** <@${winnerId}> encaisse **${bet.amount * 2} CR** !`
+              ? `**Pari validé.** <@${bet.winnerId}> encaisse **${bet.amount * 2} CR** !`
               : `**Pari contesté.** Les mises ont été rendues.`,
             components: [],
           },
@@ -108,15 +136,29 @@ export async function POST(req: Request) {
       // ===== CASE 2: Initial accept/deny — accept:<senderId>:<betId> or deny:<senderId>:<betId> =====
       const parts = custom_id.split(":");
       if (parts.length === 3) {
-        const [action, senderId, betId] = parts;
+        const [action, , betId] = parts;
 
         const bet = await getBet(betId);
         if (!bet) {
           return NextResponse.json({ type: 4, data: { content: "Pari expiré.", flags: 64 } });
         }
 
+        if (clickerId !== bet.receiverId) {
+          return ephemeral("Ce pari ne t'est pas destiné.");
+        }
+
+        if (bet.status !== "PENDING") {
+          return ephemeral("Tu as déjà répondu à ce pari.");
+        }
+
+        if (!(await claimBetLock(betId, "respond"))) {
+          return ephemeral("Ce pari est déjà en cours de traitement.");
+        }
+
+        const senderId = bet.senderId;
+
         if (action === "accept") {
-          const receiverCredits = await kv.get<number>(`user:credits:${clickerId}`) ?? 5000;
+          const receiverCredits = await kv.get<number>(`user:credits:${clickerId}`) ?? STARTING_CREDITS;
           if (receiverCredits < bet.amount) {
             return NextResponse.json({
               type: 7,

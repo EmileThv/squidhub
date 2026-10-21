@@ -26,7 +26,7 @@ export default function ActiveBetsOverlay() {
         const winnerId = choice === "SELF" ? session?.user?.id : (bet.senderId === session?.user?.id ? bet.receiverId : bet.senderId);
 
         try {
-            await initiateResolution(bet, winnerId!, session?.user?.id!);
+            await initiateResolution(bet.id, winnerId!);
             setResolvingBet(null);
             // "mutate" force SWR à rafraîchir les données immédiatement après l'action
             mutate();

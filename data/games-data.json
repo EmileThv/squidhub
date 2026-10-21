@@ -34,6 +34,18 @@
                 {
                     "name": "Linxicon",
                     "url": "https://linxicon.com"
+                },
+                {
+                    "name": "Foodguessr",
+                    "url": "https://foodguessr.com/"
+                },
+                {
+                    "name": "Magnitudle",
+                    "url": "https://magnitudle.com/"
+                },
+                {
+                    "name": "Dialed",
+                    "url": "https://dialed.gg/"
                 }
             ]
         },
@@ -63,6 +75,10 @@
                 {
                     "name": "GeoConnections",
                     "url": "https://geoconnections.net/"
+                },
+                {
+                    "name": "Globehoppr",
+                    "url": "https://globehoppr.com/"
                 }
             ]
         },

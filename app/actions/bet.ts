@@ -3,6 +3,7 @@ import { kv } from "@vercel/kv";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { sendDiscordBetRequest } from "@/lib/discord";
+import { STARTING_CREDITS } from "@/lib/credits";
 
 export async function createBet(receiverId: string, amount: number, title: string) {
   const session = await auth();
@@ -11,7 +12,7 @@ export async function createBet(receiverId: string, amount: number, title: strin
   const senderId = session.user.id;
 
   try {
-    const currentCredits = await kv.get<number>(`user:credits:${senderId}`) ?? 5000;
+    const currentCredits = await kv.get<number>(`user:credits:${senderId}`) ?? STARTING_CREDITS;
     if (currentCredits < amount) throw new Error("INSUFFICIENT_CREDITS");
     if (receiverId === senderId) throw new Error("CANNOT_BET_SELF");
 

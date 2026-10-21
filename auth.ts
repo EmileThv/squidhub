@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
 import { kv } from "@vercel/kv";
+import { STARTING_CREDITS } from "@/lib/credits";
 
 type DiscordProfile = {
   id: string;
@@ -55,14 +56,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             image: user?.image || (profile as any)?.image_url,
           };
 
-          // Set the profile AND the 5000 starting credits
+          // Set the profile AND the starting credits
           await Promise.all([
             kv.set(profileKey, newUserProfile),
-            kv.set(creditsKey, 10000), // Starting credits
+            kv.set(creditsKey, STARTING_CREDITS),
             kv.sadd("all_players", userId),
           ]);
 
-          console.log(`NEW_USER_CREATED: ${userId} initialized with 5000 credits.`);
+          console.log(`NEW_USER_CREATED: ${userId} initialized with ${STARTING_CREDITS} credits.`);
         } else {
           // Optional: Update existing profile to keep Discord Name/Image in sync
           await kv.set(profileKey, {

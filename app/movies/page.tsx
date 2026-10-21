@@ -209,7 +209,7 @@ export default function SuggestPage() {
                             onClick={() => togglePlayer(player.id)}
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${selectedPlayers.includes(player.id)
                                 ? "bg-main-green border-main-yellow"
-                                : "border-main-yel low/20 hover:border-main-yellow/50"
+                                : "border-main-yellow/20 hover:border-main-yellow/50"
                                 }`}
                         >
                             <img
