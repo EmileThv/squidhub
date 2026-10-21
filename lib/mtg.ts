@@ -24,12 +24,18 @@ export type MtgStanding = MtgPlayer & {
   points: number;
   wins: number;
   played: number;
+  placementSum: number; // sum of finishing positions, 1 = winner
 };
 
-// Ranked by points, then wins, then fewest games played
+// Average finishing position, with players who haven't played yet counted as mid-table
+const NEUTRAL_PLACEMENT = 2.5;
+const averagePlacement = (s: MtgStanding) => (s.played > 0 ? s.placementSum / s.played : NEUTRAL_PLACEMENT);
+
+// Ranked by points, then wins, then best average finishing position (so 3rd beats 4th even though
+// both score 0), then fewest games played
 export function computeStandings(players: MtgPlayer[], games: MtgGame[]): MtgStanding[] {
   const standings = new Map<string, MtgStanding>(
-    players.map((p) => [p.id, { ...p, points: 0, wins: 0, played: 0 }])
+    players.map((p) => [p.id, { ...p, points: 0, wins: 0, played: 0, placementSum: 0 }])
   );
 
   for (const game of games) {
@@ -38,11 +44,16 @@ export function computeStandings(players: MtgPlayer[], games: MtgGame[]): MtgSta
       if (!standing) return;
       standing.points += MTG_POINTS[position] ?? 0;
       standing.played += 1;
+      standing.placementSum += position + 1;
       if (position === 0) standing.wins += 1;
     });
   }
 
   return [...standings.values()].sort(
-    (a, b) => b.points - a.points || b.wins - a.wins || a.played - b.played
+    (a, b) =>
+      b.points - a.points ||
+      b.wins - a.wins ||
+      averagePlacement(a) - averagePlacement(b) ||
+      a.played - b.played
   );
 }
