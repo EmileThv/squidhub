@@ -2,17 +2,24 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { liquidLayers } from "@/lib/liquid-layers";
 
 // Homepage background: the banner floats on a GPU fluid simulation (stable fluids).
 // Moving the mouse gently stirs the liquid and leaves a rippling wake on a water surface (a separate
 // wave simulation that refracts the image and catches the light). Clicking drops a ripple and squirts
-// thin wisps of squid ink that curl and dissolve. Falls back to the static banner without WebGL2 or with reduced motion.
+// thin wisps of squid ink that curl and dissolve. The banner is the seabed a few metres down, looping
+// sideways; layers handed over by other components (squids, submerged tentacles) are rendered in between. Falls back to the static banner without WebGL2 or with reduced motion.
 
 const IMAGE_SRC = "/images/bannerv3.png";
 
+// Detail of a "liquid:ripple" window event, in client pixels
+export type LiquidRipple = { x: number; y: number; strength?: number; radius?: number };
+// Detail of a "liquid:ink" window event: a small puff of ink at a point, pushed along (dx, dy), in client pixels
+export type LiquidInk = { x: number; y: number; dx?: number; dy?: number; amount?: number };
+
 const SIM_RESOLUTION = 256;
 const DYE_RESOLUTION = 1024;
-const PRESSURE_ITERATIONS = 20;
+const PRESSURE_ITERATIONS = 14;
 const CURL_STRENGTH = 12;
 const VELOCITY_DISSIPATION = 1.6;
 const INK_DISSIPATION = 0.45;
@@ -28,6 +35,8 @@ const WAKE_SPACING = 0.0025; // distance between drops along the cursor path
 const MAX_WAKE_DROPS = 16;
 const REFRACTION = 0.08;
 const WAVE_INK_PUSH = 600; // how strongly passing ripples carry the ink
+const PARALLAX = 0.012; // how far the seabed drifts against the cursor
+const SEABED_SCROLL = 0.008; // seabed widths per second, it loops from one side to the other
 
 /* ------------------------------------------------------------------ */
 /* SHADERS                                                             */
@@ -164,40 +173,112 @@ void main() {
 }`;
 
 const DISPLAY = `${HEADER}
-uniform sampler2D uImage, uInk, uVelocity, uWaves;
-uniform vec2 cover;
-uniform vec2 inkTexelSize, waveTexelSize;
-uniform float time;
-uniform float refraction;
+uniform sampler2D uImage, uInk, uVelocity, uWaves, uUnder, uCreatures;
+uniform vec2 cover, inkTexelSize, waveTexelSize, parallax;
+uniform float time, refraction, aspect, hasUnder, hasCreatures, scroll;
+
+const float TROUGH_DARKNESS = 0.1; // the darkest a wave trough can make the water
+const float SPECK_DENSITY = 0.5; // share of grid cells holding a floating particle
+const float SPECK_BRIGHTNESS = 0.22;
+
+// Bright filaments where a few drifting wave fronts interfere, like light on a pool floor
+float caustic(vec2 p, float t) {
+  float v = sin(p.x + t * 0.9 + sin(p.y * 1.3 + t * 0.5))
+          + sin(p.y * 1.1 - t * 0.7 + sin(p.x * 1.7 - t * 0.6))
+          + sin((p.x + p.y) * 0.8 + t * 0.6 + sin(p.x * 0.9 + t * 0.4));
+  return pow(1.0 - abs(v) / 3.0, 7.0);
+}
+
+float hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+// Suspended particles at one depth: at most one speck per grid cell, wobbling inside it and twinkling
+float specks(vec2 p, float cells, float t, float seed) {
+  vec2 grid = p * cells;
+  vec2 cell = floor(grid);
+  vec2 local = fract(grid) - 0.5;
+  float a = hash21(cell + seed);
+  float b = hash21(cell + seed + a * 17.0);
+  if (a > SPECK_DENSITY) return 0.0;
+  vec2 wobble = vec2(sin(t * 0.7 + b * 6.28), cos(t * 0.5 + a * 6.28)) * 0.18;
+  vec2 position = (vec2(a / SPECK_DENSITY, b) - 0.5) * 0.5 + wobble;
+  float size = 0.04 + b * 0.06;
+  float twinkle = 0.6 + 0.4 * sin(t * (1.0 + a * 2.0) + b * 30.0);
+  return smoothstep(size, size * 0.2, length(local - position)) * twinkle;
+}
 
 void main() {
   vec2 velocity = texture(uVelocity, vUv).xy;
 
-  // Slope of the water surface, used to refract the image and catch the light
+  // Slope of the water surface, used to refract what is below and to catch the light
   vec2 slope = vec2(
     texture(uWaves, vUv + vec2(waveTexelSize.x, 0.0)).r - texture(uWaves, vUv - vec2(waveTexelSize.x, 0.0)).r,
     texture(uWaves, vUv + vec2(0.0, waveTexelSize.y)).r - texture(uWaves, vUv - vec2(0.0, waveTexelSize.y)).r
   );
 
-  // Slow ambient wobble so the image always feels liquid, plus the stirred velocity
+  // Slow ambient wobble so the water always feels alive, plus the stirred velocity
   vec2 ambient = vec2(
     sin(vUv.y * 5.0 + time * 0.22) + sin(vUv.x * 3.0 - time * 0.17),
     cos(vUv.x * 4.0 + time * 0.19) + cos(vUv.y * 2.5 - time * 0.13)
   ) * 0.0008;
-  vec2 uv = (vUv + velocity * 0.00008 + ambient + slope * refraction - 0.5) * cover + 0.5;
+  vec2 flow = velocity * 0.00008 + ambient;
 
-  // Chromatic split along the flow when the liquid moves fast
-  vec2 dir = normalize(velocity + 0.00001);
-  float split = clamp(length(velocity) * 0.000006, 0.0, 0.002);
-  vec3 image = vec3(
-    texture(uImage, uv + dir * split).r,
-    texture(uImage, uv).g,
-    texture(uImage, uv - dir * split).b
-  );
+  // The banner is the seabed, a few metres down: refracted more than anything near the surface,
+  // slightly out of focus, tinted by the water and drifting against the cursor (parallax)
+  vec2 uv = (vUv + flow * 1.6 + slope * refraction * 2.6 + parallax - 0.5) * cover * 0.96 + 0.5;
+  uv.x += scroll; // wraps around: the image repeats horizontally
+  float b = 0.0018;
+  vec3 seabed = texture(uImage, uv).rgb * 0.4
+    + (texture(uImage, uv + vec2(b, 0.0)).rgb + texture(uImage, uv - vec2(b, 0.0)).rgb
+     + texture(uImage, uv + vec2(0.0, b)).rgb + texture(uImage, uv - vec2(0.0, b)).rgb) * 0.15;
   vec3 background = vec3(0.169, 0.176, 0.192);
-  vec3 color = mix(background, image, 0.75);
+  vec3 water = vec3(0.03, 0.13, 0.17);
+  vec3 color = mix(mix(background, seabed, 0.8), water, 0.24);
 
-  // Squid ink, seen through the same rippling surface: near-black body with an iridescent sheen on its edges
+  // Squids swimming at mid-depth: refracted between the seabed and the surface, softened, tinted by the water
+  if (hasCreatures > 0.5) {
+    vec2 creatureUv = vUv + slope * refraction * 1.8 + flow * 1.3;
+    float c = 0.0015;
+    vec4 creature = texture(uCreatures, creatureUv) * 0.6
+      + (texture(uCreatures, creatureUv + vec2(c, 0.0)) + texture(uCreatures, creatureUv - vec2(c, 0.0))
+       + texture(uCreatures, creatureUv + vec2(0.0, c)) + texture(uCreatures, creatureUv - vec2(0.0, c))) * 0.1;
+    vec3 tinted = mix(creature.rgb, water, 0.2 + (1.0 - creature.a) * 0.5);
+    color = mix(color, tinted, creature.a);
+  }
+
+  // Caustics play over the seabed and everything swimming above it
+  vec2 causticUv = vec2(vUv.x * aspect, vUv.y) + slope * 4.0 + parallax * 3.0;
+  float light = caustic(causticUv * 9.0, time) + caustic(causticUv * 5.3 + 7.0, time * 0.8) * 0.6;
+  color += vec3(0.75, 0.95, 0.9) * light * 0.12;
+
+  // Marine snow at three depths: deep ones fine and dense, near ones sparse and bigger.
+  // They drift with the current, get pushed by the stirred water and catch the caustics.
+  vec2 drift = vec2(time * 0.006, time * 0.004);
+  vec2 particleUv = vec2(vUv.x * aspect, vUv.y);
+  float snow =
+      specks(particleUv + drift * 0.6 + slope * refraction * 2.2 + flow * 1.6 + parallax * 0.8, 24.0, time, 1.0) * 0.35
+    + specks(particleUv + drift + slope * refraction * 1.6 + flow * 1.3 + parallax * 0.5, 15.0, time, 7.0) * 0.5
+    + specks(particleUv + drift * 1.4 + slope * refraction * 1.1 + flow + parallax * 0.25, 8.0, time, 13.0) * 0.6;
+  color += vec3(0.85, 0.95, 0.92) * snow * SPECK_BRIGHTNESS * (0.6 + light * 2.0);
+
+  // Tentacles below the surface: less refracted than the seabed, fading into the water with depth
+  if (hasUnder > 0.5) {
+    // A few taps soften the layer: the dive looks out of focus and the arm shadows come out soft
+    vec2 underUv = vUv + slope * refraction * 1.2 + flow;
+    float o = 0.004;
+    vec4 under = texture(uUnder, underUv) * 0.28
+      + (texture(uUnder, underUv + vec2(o, 0.0)) + texture(uUnder, underUv - vec2(o, 0.0))
+       + texture(uUnder, underUv + vec2(0.0, o)) + texture(uUnder, underUv - vec2(0.0, o))) * 0.12
+      + (texture(uUnder, underUv + vec2(o, o) * 1.6) + texture(uUnder, underUv - vec2(o, o) * 1.6)
+       + texture(uUnder, underUv + vec2(o, -o) * 1.6) + texture(uUnder, underUv - vec2(o, -o) * 1.6)) * 0.06;
+    vec3 tinted = mix(under.rgb, water, 0.12 + (1.0 - under.a) * 0.6);
+    color = mix(color, tinted, under.a);
+  }
+
+  // Squid ink floats at the surface: near-black body with an iridescent sheen on its edges
   vec2 inkUv = vUv + slope * refraction;
   float ink = texture(uInk, inkUv).r;
   vec2 gradient = vec2(
@@ -212,11 +293,13 @@ void main() {
 
   // Light on the ripples: zero on flat water, bright crests and dark troughs where it moves
   vec3 normal = normalize(vec3(-slope * 6.0, 1.0));
-  vec3 light = normalize(vec3(-0.5, 0.7, 0.6));
-  vec3 halfway = normalize(light + vec3(0.0, 0.0, 1.0));
-  float diffuse = dot(normal, light) - light.z;
+  vec3 sun = normalize(vec3(-0.5, 0.7, 0.6));
+  vec3 halfway = normalize(sun + vec3(0.0, 0.0, 1.0));
+  float diffuse = dot(normal, sun) - sun.z;
   float specular = max(pow(max(dot(normal, halfway), 0.0), 120.0) - pow(halfway.z, 120.0), 0.0);
-  color += diffuse * 0.35 + specular * 0.6;
+  // Troughs darken softly and level off, so stacked-up waves don't turn black; crests stay linear
+  float shade = diffuse > 0.0 ? diffuse * 0.35 : -TROUGH_DARKNESS * (1.0 - exp(diffuse * 3.5));
+  color += shade + specular * 0.6;
 
   fragColor = vec4(color, 1.0);
 }`;
@@ -508,6 +591,30 @@ export default function LiquidBackground() {
       };
 
       let imageTexture: WebGLTexture | null = null;
+      const parallax = { x: 0, y: 0 };
+      // Textures for the 2D layers handed over by other components (see lib/liquid-layers)
+      const createLayerTexture = () => {
+        const texture = gl.createTexture()!;
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+        return texture;
+      };
+      const underTexture = createLayerTexture();
+      const creaturesTexture = createLayerTexture();
+
+      // Binds a layer to a texture unit, uploading the canvas when there is one; returns whether it is there
+      const bindLayer = (unit: number, texture: WebGLTexture, layer: HTMLCanvasElement | null) => {
+        bindTexture(unit, texture);
+        if (!layer || layer.width === 0 || layer.height === 0) return false;
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, layer);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        return true;
+      };
       let imageAspect = 16 / 9;
 
       const render = (time: number) => {
@@ -526,6 +633,21 @@ export default function LiquidBackground() {
         gl.uniform2f(u.waveTexelSize, waves.read.texelX, waves.read.texelY);
         gl.uniform1f(u.refraction, REFRACTION);
         gl.uniform1i(u.uWaves, bindTexture(3, waves.read.texture));
+        gl.uniform1f(u.aspect, canvasAspect);
+
+        // The seabed drifts slightly against the cursor, it is further away than the surface
+        const target = pointer.seen ? { x: (0.5 - pointer.x) * PARALLAX, y: (0.5 - pointer.y) * PARALLAX } : { x: 0, y: 0 };
+        parallax.x += (target.x - parallax.x) * 0.04;
+        parallax.y += (target.y - parallax.y) * 0.04;
+        gl.uniform2f(u.parallax, parallax.x, parallax.y);
+
+        gl.uniform1f(u.scroll, time * SEABED_SCROLL);
+
+        // Layers drawn on 2D canvases by other components: tentacles below the surface, swimming squids
+        gl.uniform1f(u.hasUnder, bindLayer(4, underTexture, liquidLayers.underwater) ? 1 : 0);
+        gl.uniform1i(u.uUnder, 4);
+        gl.uniform1f(u.hasCreatures, bindLayer(5, creaturesTexture, liquidLayers.creatures) ? 1 : 0);
+        gl.uniform1i(u.uCreatures, 5);
         blit(null);
       };
 
@@ -549,9 +671,30 @@ export default function LiquidBackground() {
         Object.assign(pointer, { x, y, seen: true });
       };
 
+      // Other components (the tentacles) disturb the water by dispatching a "liquid:ripple" event
+      const onRipple = (e: Event) => {
+        const { x, y, strength = 0.05, radius = 0.0002 } = (e as CustomEvent<LiquidRipple>).detail;
+        const rect = canvas.getBoundingClientRect();
+        const u = (x - rect.left) / rect.width;
+        const v = 1 - (y - rect.top) / rect.height;
+        if (u < 0 || u > 1 || v < 0 || v > 1) return;
+        splat(waves, u, v, [-strength, 0, 0], radius);
+      };
+
+      // ...and drop small puffs of ink (a fleeing squid) with a "liquid:ink" event
+      const onInk = (e: Event) => {
+        const { x, y, dx = 0, dy = 0, amount = 0.9 } = (e as CustomEvent<LiquidInk>).detail;
+        const rect = canvas.getBoundingClientRect();
+        const u = (x - rect.left) / rect.width;
+        const v = 1 - (y - rect.top) / rect.height;
+        if (u < 0 || u > 1 || v < 0 || v > 1) return;
+        splat(ink, u, v, [amount, 0, 0], 0.0005);
+        splat(velocity, u, v, [dx * 300, -dy * 300, 0], 0.0008);
+      };
+
       const onPointerDown = (e: PointerEvent) => {
         const target = e.target as HTMLElement | null;
-        if (target?.closest("a, button, input, textarea, select, label")) return;
+        if (target?.closest("a, button, input, textarea, select, label, [data-no-ink]")) return;
         const { x, y } = toUv(e);
         if (x < 0 || x > 1 || y < 0 || y > 1) return;
         splat(waves, x, y, [-0.8, 0, 0], 0.0004);
@@ -577,7 +720,7 @@ export default function LiquidBackground() {
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); // the seabed loops sideways
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
@@ -585,6 +728,8 @@ export default function LiquidBackground() {
 
         window.addEventListener("pointermove", onPointerMove);
         window.addEventListener("pointerdown", onPointerDown);
+        window.addEventListener("liquid:ripple", onRipple);
+        window.addEventListener("liquid:ink", onInk);
         raf = requestAnimationFrame(loop);
         setReady(true);
       };
@@ -595,6 +740,8 @@ export default function LiquidBackground() {
         cancelAnimationFrame(raf);
         window.removeEventListener("pointermove", onPointerMove);
         window.removeEventListener("pointerdown", onPointerDown);
+        window.removeEventListener("liquid:ripple", onRipple);
+        window.removeEventListener("liquid:ink", onInk);
         gl.getExtension("WEBGL_lose_context")?.loseContext();
       };
     } catch (e) {

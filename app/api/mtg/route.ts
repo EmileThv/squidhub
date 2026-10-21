@@ -1,42 +1,10 @@
 import { NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
 import { auth } from "@/auth";
-import { computeStandings, type MtgGame, type MtgPlayer } from "@/lib/mtg";
+import { computeStandings, type MtgGame } from "@/lib/mtg";
+import { MTG_GAMES_KEY, getMtgGames, getMtgPlayerIds, getMtgPlayers } from "@/lib/mtg-server";
 
 export const dynamic = "force-dynamic";
-
-// Hash of gameId -> MtgGame
-const GAMES_KEY = "mtg:games";
-
-// Comma-separated Discord ids of the players allowed to enter games
-function getMtgPlayerIds(): string[] {
-  return (process.env.MTG_PLAYER_IDS ?? "")
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean);
-}
-
-async function getMtgPlayers(): Promise<MtgPlayer[]> {
-  const ids = getMtgPlayerIds();
-  if (ids.length === 0) return [];
-
-  const profiles = await kv.mget<(Partial<MtgPlayer> | null)[]>(...ids.map((id) => `user:profile:${id}`));
-  return ids.map((id, index) => ({
-    id,
-    name: profiles[index]?.name ?? `Joueur ${id.slice(-4)}`,
-    image: profiles[index]?.image ?? null,
-  }));
-}
-
-async function getMtgGames(): Promise<MtgGame[]> {
-  const raw = await kv.hgetall<Record<string, MtgGame>>(GAMES_KEY);
-  if (!raw) return [];
-
-  // Most recent first
-  return Object.values(raw).sort(
-    (a, b) => b.playedAt.localeCompare(a.playedAt) || b.createdAt - a.createdAt
-  );
-}
 
 // Returns the session user's id if they are one of the MTG players
 async function getMtgEditor(): Promise<string | null> {
@@ -99,7 +67,7 @@ export async function POST(req: Request) {
     createdAt: Date.now(),
   };
 
-  await kv.hset(GAMES_KEY, { [game.id]: game });
+  await kv.hset(MTG_GAMES_KEY, { [game.id]: game });
   return NextResponse.json(game);
 }
 
@@ -110,7 +78,7 @@ export async function DELETE(req: Request) {
   const gameId = new URL(req.url).searchParams.get("id");
   if (!gameId) return NextResponse.json({ error: "MISSING_ID" }, { status: 400 });
 
-  const deleted = await kv.hdel(GAMES_KEY, gameId);
+  const deleted = await kv.hdel(MTG_GAMES_KEY, gameId);
   if (!deleted) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
   return NextResponse.json({ success: true });
