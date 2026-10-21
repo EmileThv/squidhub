@@ -1,5 +1,6 @@
 import Leaderboard from "@/components/Leaderboard";
 import FilmCard from "@/components/FilmCard";
+import MtgLeague from "@/components/MtgLeague";
 import Image from "next/image";
 
 export const dynamic = "force-dynamic"
@@ -34,6 +35,8 @@ export default function Home() {
         </div>
 
       </div>
+
+      <MtgLeague />
     </main>
   );
 }

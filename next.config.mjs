@@ -1,5 +1,12 @@
 // next.config.mjs
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 const nextConfig = {
+  // Pin the project root so a stray lockfile higher up (e.g. in ~) isn't picked as the workspace root
+  turbopack: {
+    root: path.dirname(fileURLToPath(import.meta.url)),
+  },
   images: {
     remotePatterns: [
       {
