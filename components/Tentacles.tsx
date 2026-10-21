@@ -74,8 +74,8 @@ const DRAG_THRESHOLD = 5; // px of movement before a press on a card becomes a d
 const DRAG_REACH = 280; // rubber band: the further a card is pulled, the harder the arm resists
 const SPRING = { stiffness: 85, damping: 8 }; // pulling the card back once released, bouncy
 
-type Point = { x: number; y: number; r: number };
-type Frame = Point & { nx: number; ny: number; tx: number; ty: number; lit: number };
+export type Point = { x: number; y: number; r: number };
+export type Frame = Point & { nx: number; ny: number; tx: number; ty: number; lit: number };
 
 type ArmState = {
   offsets: { x: number; y: number }[]; // per above-water point, eased cursor avoidance
@@ -111,7 +111,7 @@ const wander = (t: number, seed: number) =>
 
 type Vec = { x: number; y: number };
 
-function bezier(p0: Vec, p1: Vec, p2: Vec, p3: Vec, t: number): Vec {
+export function bezier(p0: Vec, p1: Vec, p2: Vec, p3: Vec, t: number): Vec {
   const u = 1 - t;
   return {
     x: u * u * u * p0.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * p3.x,
@@ -120,7 +120,7 @@ function bezier(p0: Vec, p1: Vec, p2: Vec, p3: Vec, t: number): Vec {
 }
 
 // Tangents, normals and how much each point faces the light
-function toFrames(points: Point[]): Frame[] {
+export function toFrames(points: Point[]): Frame[] {
   return points.map((p, i) => {
     const a = points[Math.max(0, i - 1)];
     const b = points[Math.min(points.length - 1, i + 1)];
@@ -165,7 +165,7 @@ function ribbonPath(
   ctx.closePath();
 }
 
-function drawArm(
+export function drawArm(
   ctx: CanvasRenderingContext2D,
   frames: Frame[],
   palette: TentaclePalette,

@@ -1,10 +1,7 @@
 import Image from "next/image";
 import { Pirata_One } from "next/font/google";
-import { computeStandings } from "@/lib/mtg";
+import { MTG_DISPLAY_NAMES, computeStandings } from "@/lib/mtg";
 import { getMtgGames, getMtgPlayers } from "@/lib/mtg-server";
-
-// Display names, in the same order as MTG_PLAYER_IDS
-const DISPLAY_NAMES = ["Emile", "Tanguy", "Julien", "Alexis"];
 
 const pirata = Pirata_One({ weight: "400", subsets: ["latin"] });
 
@@ -19,7 +16,7 @@ const largeAvatar = (url: string) => `${url.split("?")[0]}?size=1024`;
 export default async function BiggestLoser() {
   const [players, games] = await Promise.all([getMtgPlayers(), getMtgGames()]);
   const loser = computeStandings(players, games).at(-1);
-  const name = loser ? DISPLAY_NAMES[players.findIndex((p) => p.id === loser.id)] ?? loser.name : null;
+  const name = loser ? MTG_DISPLAY_NAMES[players.findIndex((p) => p.id === loser.id)] ?? loser.name : null;
 
   return (
     <div className="relative h-full w-full bg-[#2a1a0c]">

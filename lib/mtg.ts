@@ -3,6 +3,9 @@
 // Points by finishing position: 1st, 2nd, 3rd, 4th
 export const MTG_POINTS = [3, 1, 0, 0];
 
+// Display names, in the same order as MTG_PLAYER_IDS
+export const MTG_DISPLAY_NAMES = ["Emile", "Tanguy", "Julien", "Alexis"];
+
 export type MtgGame = {
   id: string;
   playedAt: string; // YYYY-MM-DD
