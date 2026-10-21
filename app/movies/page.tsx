@@ -27,6 +27,7 @@ type SuggestedMovie = {
     year: number;
     predictedScore: number;
     posterUrl?: string;
+    perPlayer?: { id: string; score: number }[];
 };
 
 export default function SuggestPage() {
@@ -42,6 +43,7 @@ export default function SuggestPage() {
 
     // Results state
     const [suggestions, setSuggestions] = useState<SuggestedMovie[]>([]);
+    const [skipped, setSkipped] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -134,6 +136,7 @@ export default function SuggestPage() {
         setError(null);
         setLoading(true);
         setSuggestions([]);
+        setSkipped([]);
 
         try {
             const res = await fetch("/api/suggest", {
@@ -146,13 +149,14 @@ export default function SuggestPage() {
                 }),
             });
 
-            if (!res.ok) throw new Error("Suggestion API failed");
-
             const data = await res.json();
+            setSkipped(data.skipped ?? []);
+            if (!res.ok) throw new Error(data.error);
+
             setSuggestions(data.suggestions);
         } catch (err) {
             console.error(err);
-            setError("Something went wrong fetching suggestions.");
+            setError(err instanceof Error && err.message ? err.message : "Something went wrong fetching suggestions.");
         } finally {
             setLoading(false);
         }
@@ -194,7 +198,9 @@ export default function SuggestPage() {
     }
 
     return (
-        <div className="min-h-screen bg-discord-black text-white p-8 max-w-2xl mx-auto">
+        // body has overflow: hidden site-wide, so this page scrolls inside its own container
+        <div className="h-dvh overflow-y-auto bg-discord-black text-white">
+        <div className="p-8 pb-40 max-w-2xl mx-auto">
             <div className="flex flex-wrap justify-center">
                 <h1 className="text-3xl font-bold mb-8">Squid A.I.</h1>
             </div>
@@ -269,8 +275,14 @@ export default function SuggestPage() {
                 disabled={loading}
                 className="w-full py-3 bg-main-green rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-                {loading ? "Finding movies..." : "Suggest movies"}
+                {loading ? "Finding movies... (la première fois peut prendre ~30s)" : "Suggest movies"}
             </button>
+
+            {skipped.length > 0 && (
+                <p className="text-white/40 text-xs mt-3">
+                    Ignorés (pas de notes Letterboxd trouvées) : {skipped.join(", ")}
+                </p>
+            )}
 
             {/* Results */}
             {suggestions.length > 0 && (
@@ -295,12 +307,26 @@ export default function SuggestPage() {
                                     <p className="text-sm text-main-yellow mt-1">
                                         Predicted: {movie.predictedScore.toFixed(2)} / 5
                                     </p>
+                                    {movie.perPlayer && movie.perPlayer.length > 1 && (
+                                        <div className="flex flex-wrap gap-3 mt-2">
+                                            {movie.perPlayer.map((p) => {
+                                                const player = players.find((pl) => pl.id === p.id);
+                                                return (
+                                                    <span key={p.id} className="flex items-center gap-1 text-xs text-white/50">
+                                                        {player?.image && <img src={player.image} alt={player.name} className="w-4 h-4 rounded-full" />}
+                                                        {p.score.toFixed(1)}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
                     </div>
                 </section>
             )}
+        </div>
         </div>
     );
 }
