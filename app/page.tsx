@@ -1,7 +1,7 @@
 import Leaderboard from "@/components/Leaderboard";
 import FilmCard from "@/components/FilmCard";
 import MtgLeague from "@/components/MtgLeague";
-import Image from "next/image";
+import LiquidBackground from "@/components/LiquidBackground";
 
 export const dynamic = "force-dynamic"
 
@@ -9,17 +9,8 @@ export default function Home() {
   return (
     <main className="relative h-dvh w-screen bg-discord-black text-white overflow-hidden flex justify-center items-center pt-20 md:pt-32">
       
-      {/* Global Background Image */}
-      <div className="absolute inset-0 z-0">
-        <Image 
-          src="/images/bannerv3.png" 
-          alt="Background" 
-          fill 
-          priority
-          className="object-cover opacity-75"
-        />
-        
-      </div>
+      {/* Liquid background: stir with the mouse, click for squid ink */}
+      <LiquidBackground />
 
       {/* Increased gap and ensured items are centered horizontally but pushed up vertically */}
       <div className="relative z-10 w-full px-6 md:px-16 lg:px-24 flex flex-col md:flex-row justify-center items-start gap-50">
