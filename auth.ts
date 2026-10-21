@@ -20,6 +20,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
       // Added guilds scope to see the user's servers
       authorization: "https://discord.com/api/oauth2/authorize?scope=identify+email+guilds",
+      // Discord now returns iss=https://discord.com on the callback (RFC 9207); without this
+      // Auth.js compares it to its "https://authjs.dev" placeholder and rejects the login
+      issuer: "https://discord.com",
     }),
   ],
   callbacks: {
